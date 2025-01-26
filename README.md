@@ -20,4 +20,5 @@ Follow this steps below:
 
 ![Example to get correct url](https://github.com/hariantara/hls_downloader_server/blob/feature/add-duration-taken-hms-format/src/assets/how_to_get_url.png?raw=true)
 ![Paste the url into postman](https://github.com/hariantara/hls_downloader_server/blob/main/src/assets/postman_screenshot.png?raw=true)
+![Download progress in terminal](https://github.com/hariantara/hls_downloader_server/blob/main/src/assets/postman_screenshot.png?raw=true)
 
