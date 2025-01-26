@@ -3,6 +3,7 @@ import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import axios from "axios";
+import { performance } from 'perf_hooks';
 
 const router = Router();
 
@@ -26,7 +27,7 @@ function getUniqueFileName(directory: string, baseName: string, extension: strin
 async function getTotalDuration(m3u8Url: string): Promise<number> {
     try {
         const response = await axios.get(m3u8Url);
-        const lines = response.data.split('\n');
+        const lines = (response.data as string).split('\n');
         let totalDuration = 0;
 
         for (const line of lines) {
@@ -82,6 +83,9 @@ router.post('/download', async (req: Request, res: Response, next: NextFunction)
             // const ffmpegCommand = `ffmpeg -i "${m3u8Url}" -c copy -progress pipe:2 -nostats "${outputFile}"`;
             const ffmpegCommand = `ffmpeg -i "${m3u8Url}" -c copy -http_persistent -http_multiple -buffer_size 4M -progress pipe:2 -nostats "${outputFile}"`;
 
+            // Measure start time
+            const startTime = performance.now();
+
             // Execute the command
             const ffmpegProcess = exec(ffmpegCommand);
 
@@ -94,7 +98,7 @@ router.post('/download', async (req: Request, res: Response, next: NextFunction)
                 if (timeMatch) {
                     const timeMs = parseInt(timeMatch[1], 10);
                     const timeSeconds = timeMs / 1000000; // Convert microseconds to seconds
-                    
+
                     // Calculate and log the progress
                     const progressPercentage = ((timeSeconds / totalDuration) * 100).toFixed(2);
 
@@ -108,6 +112,11 @@ router.post('/download', async (req: Request, res: Response, next: NextFunction)
 
             // Handle the completion of the ffmpeg process
             ffmpegProcess.on('close', (code) => {
+                // Measure end time
+                const endTime = performance.now();
+                const durationTakenSeconds = ((endTime - startTime) / 1000); // Convert milliseconds to seconds
+                const durationTakenHMS = secondsToHMS(durationTakenSeconds); // Convert to hh:mm:ss format
+
                 if (code !== 0) {
                     console.error('Error during video download:', code);
                     return res.status(500).json({ error: 'Failed to download video.' });
@@ -115,7 +124,7 @@ router.post('/download', async (req: Request, res: Response, next: NextFunction)
                 if (fs.existsSync(outputFile)) {
                     // Send a success response
                     console.log('Video downloaded successfully');
-                    res.status(200).json({ message: 'Video downloaded successfully. Starting file transfer.' });
+                    res.status(200).json({ message: 'Video downloaded successfully.', durationTaken: durationTakenHMS, });
                 } else {
                     console.error('File not found:', outputFile);
                     res.status(404).json({ error: 'File not found' });
